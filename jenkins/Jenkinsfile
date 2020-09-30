@@ -6,9 +6,9 @@ pipeline {
                 echo 'Run the static analysis to the code' 
             }
         }
-        stage('Compile') {
+        stage('COMPILE') {
             steps {
-                echo 'Compile the source code' 
+                echo 'COMPILE the source code' 
             }
         }
         stage('Security Check') {

@@ -6,8 +6,8 @@ services:
         build:
             context: jenkins-ansible
         ports:
-            - "8080:8080"
-            - "50000:50000"
+            - "9080:8080"
+            - "51000:50000"
         volumes:
             - "$HOME/jenkins_home:/var/jenkins_home"
         networks:

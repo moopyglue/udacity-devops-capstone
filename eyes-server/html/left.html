@@ -1,0 +1,97 @@
+<html><head>
+<style>
+html, body { height:100% ; margin:0 ; background: black; overflow:hidden; }
+.white { position: absolute; left: 0px; top: 0px; background-color: #ffffaa; height:1080px; width:1920px; }
+.iris  { position: absolute; left: 0px; top: 0px; z-index: 1; }
+.lids  { position: absolute; left: 0px; top: 0px; z-index: 2; }
+</style>
+</head>
+<body>
+<div class=white></div>
+<div class=iris><img src="iris3.png" height="900px" /></div>
+<div class=lids><svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg" xmlns:xlink= "http://www.w3.org/1999/xlink"> <path d="M0 0 V 1080 H 1920 V -1080 H -1920" stroke="none" fill="black"/></svg></div>
+<script>
+
+open = 0.82 ; 
+updown = 0.5 ; 
+leftright = 0.5 ; 
+wavecount = 0 ; 
+xeyemod=0 ;
+yeyemod=0 ;
+eyemodsize=6 ;
+waittime=1000 ;
+frametime=50 ;
+
+queryString = window.location.search;
+side = "left";
+elmod = 0 ;
+console.log(queryString);
+
+function draweye () {
+
+	// wave count is a randomly increasing number, this is used as a seed
+	// for a sin wave which shows a slow natural flutter so the eyeball does not remain static
+	// - trying to make it seem more real
+	wavecount=wavecount+(Math.random()*0.5);
+
+	str = "";
+	// This is the starting string which describes the black eye socket mask to overaly the eyeball.
+	if( side == "left" ) {
+		// ** LEFT **
+		// below numbering is to make it easier identify the vaue to be changed/used
+		//       1   2     4     5   6    7     9    10   11  12   
+		str = "M 100 700 Q 1100 -500 1820 650 Q 1050 1100 100 700 M 0 0 V 1080 H 1920 V -1080 H -1920";
+	} else { 
+		// ** RIGHT **
+		// below numbering is to make it easier identify the vaue to be changed/used
+		//       1    2     4    5   6   7     9   10   11   12   
+		str = "M 1820 700 Q 820 -500 100 650 Q 870 1100 1820 700 M 1920 0 V 1080 H -1920 V -1080 H 1920";
+	}
+	data=str.split(' ');
+	wopen = open + 0.007*(Math.sin(wavecount));
+	data[5] = Math.round(675 - (1175 * wopen)).toString();
+	data[10] = Math.round(675 + (425 * wopen)).toString();
+	str = data.join(' ');
+
+
+	// write out the svg 
+	document.getElementsByClassName('lids')[0].innerHTML =
+		'<svg width="1920" height="1080" xmlns="http://www.w3.org/2000/svg" xmlns:xlink= "http://www.w3.org/1999/xlink">' +
+		'<path d="' + str + '" stroke="none" fill="black"/></svg>';
+
+	// position eyeball
+	if( waittime < 0 ) {
+		xeyemod=Math.round(Math.sin(Math.random()*90)*eyemodsize);
+		yeyemod=Math.round(Math.sin(Math.random()*90)*eyemodsize);
+		waittime = waittime + 400 + ( Math.random() * 1000) ;
+	}
+	document.getElementsByClassName('iris')[0].style.left = Math.round( ((0.5-leftright) * 1100)+540+xeyemod+elmod ).toString() + "px" ;
+	document.getElementsByClassName('iris')[0].style.top = Math.round( ((0.5-updown) * 600)+150+yeyemod+(85*(1-open)) ).toString() + "px" ;
+
+	// the sleep is 50 ms so that we see 20 frames a second
+	// in reality slightly slower because of the processing.
+	setTimeout(draweye,frametime);
+	waittime=waittime - frametime;
+}
+
+draweye();
+
+if (window.location.protocol == "https:") {
+    var ws = new WebSocket("wss://"+window.location.hostname+":"+window.location.port+"/get");
+} else {
+    var ws = new WebSocket("ws://"+window.location.hostname+":"+window.location.port+"/get");
+}
+ws.onmessage = function(e) {
+	var x = e.data.split(",");
+	if( x.length > 1 ) {
+		leftright = 0.5 - (x[0] / 300) ; 
+		updown = 0.5 - (x[1] / 300 ); 
+		if( x[3] > 0 ) { open = (((0-x[3])/100)+0.7); }
+        else { open = (((0-x[3])/300)+0.7); }
+        console.log("leftright="+leftright+" updown="+updown+" open="+open);
+	}
+}
+
+</script>
+</body>
+</html>

@@ -1,0 +1,87 @@
+{
+  "AWSTemplateFormatVersion" : "2010-09-09",
+  
+  "Description" : "Kube Cluster template",
+  
+  "Parameters" : {
+
+    "ClusterName":   { "Type":"String", "Default":"default",      "Description" : "Name of your Amazon ECS Cluster" },
+    "InstanceType" : { "Type":"String", "Default":"t2.small",     "Description": "Container Instance type" },
+    "InstanceAMI"  : { "Type":"String", "Default":"ami-34ddbe5c", "Description": "Container Instance AMI ID" },
+    "SSHLocation"  : { "Type":"String", "Default":"0.0.0.0/0",    "Description": "SSH IP address range " } 
+    "KeyName":       { "Type":"AWS::EC2::KeyPair::KeyName", "Default":"ecs-capstone", "Description" : "EC2 KeyPair to enable SSH access" },
+
+  },
+  
+  "Resources" : {
+
+    "ContainerInstance" : {
+      "Type": "AWS::EC2::Instance",
+      "Properties": {
+        "IamInstanceProfile" : { "Ref" : "ECSIamInstanceProfile" },
+        "ImageId" :        { "ami-34ddbe5c }
+        "InstanceType"   : { "Ref" : "InstanceType" },
+        "SecurityGroups" : [ {"Ref" : "ECSQuickstartSecurityGroup"} ],
+        "KeyName"        : { "Ref" : "KeyName" },
+        "UserData"       : { "Fn::Base64" : { "Fn::Join" : ["", [
+             "#!/bin/bash -xe\n",
+             "echo ECS_CLUSTER=", { "Ref" : "ClusterName" },
+             " >> /etc/ecs/ecs.config\n"
+        ]]}}
+      }
+    },
+
+    "ECSQuickstartSecurityGroup" : {
+      "Type" : "AWS::EC2::SecurityGroup",
+      "Properties" : {
+        "GroupDescription" : "Enable HTTP access via SSH",
+        "SecurityGroupIngress" : [
+          {"IpProtocol" : "tcp", "FromPort" : "22", "ToPort" : "22", "CidrIp" : { "Ref" : "SSHLocation"}}
+        ]
+      }
+    },
+
+    "ECSIamInstanceProfile" : {
+      "Type" : "AWS::IAM::InstanceProfile",
+      "Properties" : {
+        "Path" : "/",
+        "Roles" : [{ "Ref" : "ECSQuickstartRole" }]
+      }
+    },
+
+    "ECSQuickstartRole" : {
+      "Type" : "AWS::IAM::Role",
+      "Properties" : {
+        "AssumeRolePolicyDocument": {
+          "Version" : "2012-10-17",
+          "Statement" : [ {
+            "Effect" : "Allow",
+            "Principal" : {
+              "Service" : [ "ec2.amazonaws.com" ]
+            },
+            "Action" : [ "sts:AssumeRole" ]
+          } ]
+       },
+      "Path" : "/",
+      "Policies" : [ {
+        "PolicyName" : "ECSQuickstart",
+        "PolicyDocument": {
+          "Version" : "2012-10-17",
+          "Statement" : [ {
+            "Effect" : "Allow",
+            "Action" : "ecs:*",
+            "Resource" : "*"
+          } ]
+       }
+       } ]
+      }
+    }
+  },
+
+  "Outputs" : {
+    "ECSInstance" : {
+      "Description" : "Location for Amazon ECS Instance",
+      "Value" : { "Fn::Join" : ["", ["ssh ec2-user@", { "Fn::GetAtt" : [ "ContainerInstance", "PublicDnsName" ]}]] }
+    }
+  }
+}

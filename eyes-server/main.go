@@ -24,7 +24,7 @@ var upgrader = websocket.Upgrader{
     },
 }
 
-func sendServer(w http.ResponseWriter, r *http.Request) {
+func sendSession(w http.ResponseWriter, r *http.Request) {
 	fmt.Printf("sender (input) started\n")
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil { fmt.Println(err) ; return }
@@ -37,18 +37,28 @@ func sendServer(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func getServer(w http.ResponseWriter, r *http.Request) {
+func getSession(w http.ResponseWriter, r *http.Request) {
 	//var m []byte("hello")
-	fmt.Printf("getter (eyeballs) started\n")
+    id:=r.URL.Query().Get("s");
+    logtag:="getSession: "+id+": ";
+    fmt.Println(logtag,"started")
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil { fmt.Println(err) ; return }
 	for {
 		v := loadstorevar.Load().(msg)
 		var err = conn.WriteMessage(1,v.str)
-		time.Sleep(100*time.Millisecond);
-		if err != nil { fmt.Println(err); return }
+		time.Sleep(50*time.Millisecond);
+		if err != nil {
+            fmt.Println(logtag,err);
+            fmt.Println(logtag,"exiting")
+            return
+        }
 		// fmt.Printf("sent mess\n")
 	}
+}
+
+func regSession(w http.ResponseWriter, r *http.Request) {
+    fmt.Println("regSession params were:", r.URL.Query())
 }
 
 func main() {
@@ -60,8 +70,9 @@ func main() {
 	v := msg{ []byte("NULL") }
 	loadstorevar.Store(v)
 
-	http.HandleFunc("/send", sendServer)
-	http.HandleFunc("/get", getServer)
+	http.HandleFunc("/send", sendSession)
+	http.HandleFunc("/get", getSession)
+	http.HandleFunc("/register", regSession)
 	http.Handle("/", http.FileServer(http.Dir("/app/html/")))
 
 	fmt.Printf("Starting \n");

@@ -1,12 +1,10 @@
 <html><head>
 <style>
 html, body { height:100% ; margin:0 ; background: #ccc; overflow:hidden; }
-.white { position: absolute; left: 0px; top: 0px; background-color: #ffffaa; height:1080px; width:1920px; }
-.eye  { position: absolute; left: 0px; top: 0px; z-index: 2; width:100% ; }
+.eye  { position: absolute; left: 0px; top: 0px; width:100% ; }
 </style>
 </head>
 <body>
-<div class=white></div>
 <div class=eye></div>
 <script>
 
@@ -94,6 +92,7 @@ function draweye () {
 	// write out the svg 
 	document.getElementsByClassName('eye')[0].innerHTML =
         '<svg viewBox="0 0 1920 5000" width="100%" xmlns="http://www.w3.org/2000/svg" >' + 
+        '    <rect x=0 y=0 width=1920 height=1080 fill="#ffffaa" />' + 
         '    <image x='+eyecoordx+' y='+eyecoordy+' width=900 height=900 xlink:href=iris3.png />' + 
         '    <path d="' + str + '" stroke="none" fill="black"/>' + 
         '</svg>';

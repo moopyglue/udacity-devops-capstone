@@ -1,9 +1,10 @@
 
-
 package main
 
 import (
 	"fmt"
+    "bytes"
+    "sync"
     "os"
 	"time"
 	"net/http"
@@ -11,54 +12,135 @@ import (
 	"github.com/gorilla/websocket"
 )
 
-type msg struct {
-        str []byte
-}
 var loadstorevar atomic.Value
 
+type msg struct {
+    str []byte
+}
+
+var messages = make(map[string]msg)
+var links    = make(map[string]string)
+var mux      = &sync.Mutex{}
+
 var upgrader = websocket.Upgrader{
-    ReadBufferSize:  1024,
-    WriteBufferSize: 1024,
+    ReadBufferSize:  10240,
+    WriteBufferSize: 10240,
     CheckOrigin: func(r *http.Request) bool {
         return true
     },
 }
 
 func sendSession(w http.ResponseWriter, r *http.Request) {
-	fmt.Printf("sender (input) started\n")
+
+    sid:=r.URL.Query().Get("s");
+    gid:=r.URL.Query().Get("g");
+    logtag:=sid+":  in: ";
+    fmt.Println(logtag,"started: adding in client ",gid)
+
 	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil { fmt.Println(err) ; return }
+	if err != nil {
+        fmt.Println(logtag,err);
+        fmt.Println(logtag,"exiting")
+        return
+    }
+
+    crossLink(gid,sid)
+	fmt.Println(logtag,"crossLink g=",gid," s=",sid)
+
 	for {
 		_, message, err := conn.ReadMessage()
-		if err != nil { fmt.Println(err); return }
+		if err != nil {
+            fmt.Println(logtag,err);
+            fmt.Println(logtag,"exiting")
+            sendUnlink(sid)
+            return
+        }
 		v := msg{ message }
+        sendVal(sid,message)
 		loadstorevar.Store(v)
-		// fmt.Printf("mess=%s\n",message)
+		fmt.Println(logtag,string(message))
+		fmt.Println(links)
 	}
 }
 
 func getSession(w http.ResponseWriter, r *http.Request) {
+
 	//var m []byte("hello")
-    id:=r.URL.Query().Get("s");
-    logtag:="getSession: "+id+": ";
+    id:=r.URL.Query().Get("g");
+    logtag:=id+": out: ";
     fmt.Println(logtag,"started")
+
 	conn, err := upgrader.Upgrade(w, r, nil)
-	if err != nil { fmt.Println(err) ; return }
+	if err != nil {
+        fmt.Println(logtag,err);
+        fmt.Println(logtag,"exiting")
+        return
+    }
+
+    lastv := []byte{}
+    nosend := 0
 	for {
-		v := loadstorevar.Load().(msg)
-		var err = conn.WriteMessage(1,v.str)
-		time.Sleep(50*time.Millisecond);
-		if err != nil {
-            fmt.Println(logtag,err);
-            fmt.Println(logtag,"exiting")
-            return
+        v := getVal(id)
+        if( string(v.str) != "NULL" ) {
+            if( bytes.Compare(v.str,lastv) != 0 || nosend > 100 ) {
+		        var err = conn.WriteMessage(1,v.str)
+		        if err != nil {
+                    fmt.Println(logtag,err);
+                    fmt.Println(logtag,"exiting")
+                    //getUnlink(id)
+                    return
+                }
+		        fmt.Println(logtag,string(v.str))
+                nosend = 0
+            } else {
+                nosend++
+            }
+		    time.Sleep(50*time.Millisecond);
+            lastv=v.str;
         }
-		// fmt.Printf("sent mess\n")
 	}
 }
 
-func regSession(w http.ResponseWriter, r *http.Request) {
-    fmt.Println("regSession params were:", r.URL.Query())
+func sendVal(id string,mess []byte) {
+    mux.Lock()
+    messages[id]=msg{mess}
+    mux.Unlock()
+}
+
+func getVal(gid string) (m msg){
+    mux.Lock()
+    if sid,ok := links[gid]; ok {
+        if m,ok = messages[sid]; ok {
+            mux.Unlock()
+            return
+        }
+    }
+    mux.Unlock()
+    m = msg{str:[]byte("NULL")}
+    return
+}
+
+func crossLink(gid string,sid string) {
+    mux.Lock()
+    if( gid != "" ) {
+        links[gid]=sid
+    }
+    mux.Unlock()
+    return
+}
+
+func sendUnlink(gid string) {
+    mux.Lock()
+    delete(messages,gid)
+    mux.Unlock()
+    return
+}
+
+func getUnlink(gid string) {
+    mux.Lock()
+    delete(links,gid)
+    mux.Unlock()
+    return
 }
 
 func main() {
@@ -72,7 +154,6 @@ func main() {
 
 	http.HandleFunc("/send", sendSession)
 	http.HandleFunc("/get", getSession)
-	http.HandleFunc("/register", regSession)
 	http.Handle("/", http.FileServer(http.Dir("/app/html/")))
 
 	fmt.Printf("Starting \n");

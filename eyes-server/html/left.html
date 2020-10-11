@@ -3,18 +3,21 @@
 html, body { height:100% ; margin:0 ; background: #ccc; overflow:hidden; }
 .eye  { position: absolute; left: 0px; top: 0px; width:100% ; }
 </style>
+<script type="text/javascript" src="qrcode.js"></script>
 </head>
 <body>
-<div class=eye></div>
+<div id=page class=eye></div>
+    <div id=qrcode style='margin:50px; '></div>
+</div>
 <script>
 
 //------------------------------------------------
 // session ID
 
 vals="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
-idlen=32;
+idlen=16;
 
-delete sessionStorage.UID;
+// delete sessionStorage.UID;
 var UID = ""
 if( ! sessionStorage.UID ) { 
     for (i=0;i<idlen;i++) { UID = UID + vals.substr(Math.trunc(Math.random()*vals.length),1) }
@@ -23,10 +26,10 @@ if( ! sessionStorage.UID ) {
 var UID = sessionStorage.UID;
 console.log("UID = "+UID);
 
-qcodelink=window.location.protocol+"//"+window.location.hostname+":"+window.location.port+"/register?s="+UID;
+qcodelink=window.location.protocol+"//"+window.location.hostname+":"+window.location.port+"/ctrl.html?g="+UID;
 console.log("qcodelink = "+qcodelink);
 
-wslink="://"+window.location.hostname+":"+window.location.port+"/get?s="+UID;
+wslink="://"+window.location.hostname+":"+window.location.port+"/get?g="+UID;
 if (window.location.protocol == "https:") {
     wslink="s"+wslink;
 }
@@ -45,10 +48,18 @@ eyemodsize=6 ;
 waittime=1000 ;
 frametime=50 ;
 
+
+var thisisleft = location.pathname.toString().match(/\/left.html/);
+if (thisisleft) {
+    side = "left";
+    elmod = 0 ;
+} else {
+    side = "right";
+    elmod = -60 ;
+}
+
 queryString = window.location.search;
-side = "left";
-elmod = 0 ;
-console.log(queryString);
+console.log(side+" - "+queryString);
 
 function draweye () {
 
@@ -90,7 +101,7 @@ function draweye () {
 	eyecoordy = Math.round( ((0.5-updown) * 600)+150+yeyemod+(85*(1-open)) ).toString() ;
 
 	// write out the svg 
-	document.getElementsByClassName('eye')[0].innerHTML =
+	document.getElementById('page').innerHTML =
         '<svg viewBox="0 0 1920 5000" width="100%" xmlns="http://www.w3.org/2000/svg" >' + 
         '    <rect x=0 y=0 width=1920 height=1080 fill="#ffffaa" />' + 
         '    <image x='+eyecoordx+' y='+eyecoordy+' width=900 height=900 xlink:href=iris3.png />' + 
@@ -103,21 +114,29 @@ function draweye () {
 	waittime=waittime - frametime;
 }
 
-draweye();
-
 var ws = new WebSocket(wslink);
+var openeye ;
 ws.onmessage = function(e) {
-	var x = e.data.split(",");
-	if( x.length > 1 ) {
-		leftright = 0.5 - (x[0] / 300) ; 
-		updown = 0.5 - (x[1] / 300 ); 
-		if( x[3] > 0 ) { open = (((0-x[3])/100)+0.7); }
-        else { open = (((0-x[3])/300)+0.7); }
+    if( openeye != "yes" ) {
+        draweye();
+        openeye = "yes";
+    }
+    var x = e.data.split(",");
+    if( x.length > 1 ) {
+        leftright = 0.5 - (x[0] / 300) ; 
+        updown = 0.5 - (x[1] / 300 ); 
+        if( x[3] > 0 ) { open = (((0-x[3])/100)+0.7); } else { open = (((0-x[3])/300)+0.7); }
         console.log("leftright="+leftright+" updown="+updown+" open="+open);
-	} else {
+    } else {
         console.log("no data");
     }
 }
+
+var qrcode = new QRCode(document.getElementById("qrcode"), { text : qcodelink , width : 200, height : 200 });
+
+</script>
+</body>
+</html>
 
 </script>
 </body>

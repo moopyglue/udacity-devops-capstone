@@ -9,16 +9,61 @@ canvas { border: 1px solid black; }
 </style>
 <script type="text/javascript">
 
+
+//------------------------------------------------
+// cookies
+
+function setCookie(cvalue) {
+  var d = new Date();
+  d.setTime(d.getTime() + (5 * 60 * 1000));
+  var expires = "expires="+d.toUTCString();
+  document.cookie = "eyescontrol=" + cvalue + ";" + expires + ";path=/";
+}
+
+function getCookie() {
+  var name = "eyescontrol=";
+  var ca = document.cookie.split(';');
+  for(var i = 0; i < ca.length; i++) {
+    var c = ca[i];
+    while (c.charAt(0) == ' ') {
+      c = c.substring(1);
+    }
+    if (c.indexOf(name) == 0) {
+      return c.substring(name.length, c.length);
+    }
+  }
+  return "";
+}
+
+vals="abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+idlen=16;
+
+var UID = getCookie();
+if( UID == "" ) {
+    for (i=0;i<idlen;i++) { UID = UID + vals.substr(Math.trunc(Math.random()*vals.length),1) }
+    setCookie(UID);
+} 
+
+if( location.search == "" ) {
+    wslink="://"+window.location.hostname+":"+window.location.port+"/send?s="+UID;
+} else {
+    wslink="://"+window.location.hostname+":"+window.location.port+"/send"+location.search+"&s="+UID;
+}
+if (window.location.protocol == "https:") {
+    wslink="s"+wslink;
+}
+wslink="ws"+wslink;
+console.log("wslink = "+wslink);
+
+//------------------------------------------------
+
+
 //websocket stuff
 sendstr=""
 lastsendstr=""
 tickcount=0;
 frametime=100;
-if (window.location.protocol == "https:") {
-    var ws = new WebSocket("wss://"+window.location.hostname+":"+window.location.port+"/send");
-} else {
-    var ws = new WebSocket("ws://"+window.location.hostname+":"+window.location.port+"/send");
-}
+var ws = new WebSocket(wslink);
 ws.onmessage = function(e) {
 	console.log(event.data);
 }
@@ -72,7 +117,7 @@ function update() {
 			ctx.strokeStyle = "rgba(0, 0, 200, 0.8)";
 			ctx.stroke();
 
-            var splitratio=0.77
+            var splitratio=0.67
             var py=Math.round(((py/nh)*200)-100);
             if( (px/nw) < splitratio ) {
                 //left control side
@@ -83,7 +128,7 @@ function update() {
 				pos_lid="0,"+py;
             }
 		}
-		sendstr=pos_dir+','+pos_lid+',0,0,0,0,0,0,0,0,0,0,0,0,0,0,0';
+		sendstr=pos_dir+','+pos_lid;
 	
 		if( (tickcount*frametime) > 5000 || sendstr != lastsendstr ) {
 			ws.send(sendstr);

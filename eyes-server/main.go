@@ -82,7 +82,7 @@ func getSession(w http.ResponseWriter, r *http.Request) {
 	for {
         v := getVal(id)
         if( string(v.str) != "NULL" ) {
-            if( bytes.Compare(v.str,lastv) != 0 || nosend > 100 ) {
+            if( !bytes.Equal(v.str, lastv) || nosend > 100 ) {
 		        var err = conn.WriteMessage(1,v.str)
 		        if err != nil {
                     fmt.Println(logtag,err);
@@ -126,22 +126,19 @@ func crossLink(gid string,sid string) {
         links[gid]=sid
     }
     mux.Unlock()
-    return
 }
 
 func sendUnlink(gid string) {
     mux.Lock()
     delete(messages,gid)
     mux.Unlock()
-    return
 }
 
-func getUnlink(gid string) {
-    mux.Lock()
-    delete(links,gid)
-    mux.Unlock()
-    return
-}
+//func getUnlink(gid string) {
+//    mux.Lock()
+//    delete(links,gid)
+//    mux.Unlock()
+//}
 
 func main() {
 

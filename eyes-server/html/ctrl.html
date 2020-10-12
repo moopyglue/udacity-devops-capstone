@@ -4,11 +4,24 @@
     <title>Touch Tracker Marker</title>
     <meta name="viewport" content="width=device-width, user-scalable=no">
 <style type="text/css">
-body { margin: 0px; overflow: hidden; }
-canvas { border: 1px solid black; }
+body,html { margin: 0px; padding: 0px; overflow:hidden; }
 </style>
+</head>
+<body onresize="resize()" onload="resize()">
+<img id=backimg style="z-index:-1; top:0px; left:0px; positon:absolute; pointer-events:none;" src="ctrl.svg">
+<canvas id="canvas" width=100% height=100% style="top:0px; left:0px; position: absolute ;"></canvas>
 <script type="text/javascript">
 
+canvas  = document.getElementById('canvas');
+backimg = document.getElementById('backimg');
+
+function resize() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+    backimg.width = window.innerWidth;
+    backimg.height = window.innerHeight;
+}
+resize();
 
 //------------------------------------------------
 // cookies
@@ -86,6 +99,7 @@ function update() {
 	if (updateStarted) return;
 	updateStarted = true;
 
+    resize()
 	var nw = window.innerWidth;
 	var nh = window.innerHeight;
 
@@ -141,48 +155,24 @@ function update() {
 	updateStarted = false;
 }
 
-function ol() {
 
-	canvas = document.getElementById('canvas');
-	ctx = canvas.getContext('2d');
-	timer = setInterval(update, frametime);
+ctx = canvas.getContext('2d');
+timer = setInterval(update, frametime);
 
-	canvas.addEventListener('touchend', function() {
-		ctx.clearRect(0, 0, w, h);
-	});
+canvas.addEventListener('touchend', function() {
+	ctx.clearRect(0, 0, w, h);
+});
 
-	canvas.addEventListener('touchmove', function(event) {
-  		event.preventDefault();
-  		touches = event.touches;
-	});
+canvas.addEventListener('touchmove', function(event) {
+ 		event.preventDefault();
+ 		touches = event.touches;
+});
 
-	canvas.addEventListener('touchstart', function(event) {
-  		console.log('start');
-	});
-
-};
+canvas.addEventListener('touchstart', function(event) {
+ 		console.log('start');
+});
 
 </script>
-</head>
-<body onload="ol()">
-
-<div style="z-index:-1; position:absolute; width:100%; height:100%; pointer-events:none;">
-    <svg viewBox="0 0 1600 900" width="100%" height="100%" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="none">
-    <rect x=30 y=30 width=1055 height=840 rx=15 fill="#a0aac2" />
-    <image x=350 y=250 width=400 height=400 xlink:href=iris3.png />
-    <rect x=1115 y=30 width=455 height=840 rx=15 fill="#ffffaa" />
-    <g transform="translate(1075,0)">
-    <path d="M 266.847,267.96 L 200.501,334.306 L 201.059,334.864 L 241.039,334.864 L 241.039,578.613 L 200.501,578.613 L 266.235,644.347 L 331.969,578.613 L 291.43,578.613 L 291.43,334.864 L 332.527,334.864 L 333.139,334.252 L 266.847,267.96 Z" fill="#888" stroke="none" stroke-linejoin="miter" stroke-width="0.5" stroke-linecap="round" marker-start="none" marker-end="none"/>
-    </g>
-    </svg>	
-</div>
-
-<div>
-<canvas id="canvas" width="300" height="300" style="top:0px; left:0px; width: 300px; height: 300px;"></canvas>
-<object id="tuio" type="application/x-tuio">Plugin FAILED to load</object>
-</div>
-
 </body>
 </html>
-
 

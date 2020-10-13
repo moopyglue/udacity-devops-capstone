@@ -20,7 +20,7 @@ docker:
 	docker build --tag eyes-server:latest .
 	docker images eyes-server:latest
 	
-all: lint build docker
+all: build lint docker
 
 run: all foreground
 
@@ -28,11 +28,11 @@ server: all background
 
 foreground:
 	# run 'all' then in foreground on port 6161
-	( docker stop eyes ; echo )
-	docker run --rm --name eyes -p 6161:8080 eyes-server:latest
+	( docker stop eyes-foreground ; echo )
+	docker run --rm --name eyes-foreground -p 6161:8080 eyes-server:latest
     
 background: 
 	# run 'all' then in background on port 6666
-	( docker stop eyes-background ; echo )
-	docker run --rm --detach --name eyes-background -p 6666:8080 eyes-server:latest
+	( docker stop eyes ; echo )
+	docker run --rm --detach --name eyes -p 6666:8080 eyes-server:latest
 

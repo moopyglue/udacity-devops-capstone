@@ -117,19 +117,17 @@ function draweye () {
 var ws = new WebSocket(wslink);
 var openeye ;
 ws.onmessage = function(e) {
-    if( openeye != "yes" ) {
-        draweye();
-        openeye = "yes";
-    }
     var x = e.data.split(",");
     if( x.length > 1 ) {
+        if( openeye != "yes" ) {
+            draweye();
+            openeye = "yes";
+        }
         leftright = 0.5 - (x[0] / 300) ; 
         updown = 0.5 - (x[1] / 300 ); 
         if( x[3] > 0 ) { open = (((0-x[3])/100)+0.7); } else { open = (((0-x[3])/300)+0.7); }
         console.log("leftright="+leftright+" updown="+updown+" open="+open);
-    } else {
-        console.log("no data");
-    }
+    } 
 }
 
 var qrcode = new QRCode(document.getElementById("qrcode"), { text : qcodelink , width : 200, height : 200 });

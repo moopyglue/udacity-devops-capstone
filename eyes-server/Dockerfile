@@ -5,6 +5,8 @@ RUN useradd --home-dir /app --create-home --shell /bin/bash app
 
 USER app
 COPY . /app
-ENTRYPOINT ["/app/entrypoint.bash","8080"]
+
+ENTRYPOINT ["/app/entrypoint.bash"]
 
 EXPOSE 8080
+EXPOSE 7070

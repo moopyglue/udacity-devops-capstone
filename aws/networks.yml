@@ -1,0 +1,254 @@
+Description: >
+    Simon Wall / MoopyGlue
+    This template deploys a VPC, with a pair of Public and Private subnets spread 
+    across two Availabilty Zones. It deploys an Internet Gateway, with a default 
+    route on the Public subnets. It deploys a pair of NAT Gateways (one in each AZ), 
+    and default routes for them in the Private subnets.
+
+Parameters:
+
+  #=============================================================
+  #  Parameters (all start param* )
+  #=============================================================
+
+  paramEnvName:
+    Description: The environment name
+    Type: String
+
+  paramVpcCIDR: 
+    Description: IP range (CIDR notation) for this VPC
+    Type: String
+    Default: 10.0.0.0/16
+
+  paramAZ1PubSubCIDR:
+    Description: IP range (CIDR notation) for the Public subnet in the first Availability Zone
+    Type: String
+    Default: 10.0.0.0/24
+
+  paramAZ2PubSubCIDR:
+    Description: IP range (CIDR notation) for the Public subnet in the second Availability Zone
+    Type: String
+    Default: 10.0.1.0/24
+
+  paramAZ1PrivSubCIDR:
+    Description: IP range (CIDR notation) for the Private subnet in the first Availability Zone
+    Type: String
+    Default: 10.0.2.0/24
+
+  paramAZ2PrivSubCIDR:
+    Description: IP range (CIDR notation) for the Private subnet in the second Availability Zone
+    Type: String
+    Default: 10.0.3.0/24
+
+
+Resources:
+
+  # ___________________________________ N E T W O R K ___________________________________________
+
+  #===============================================================
+  #  VPC network - does not reference subnets or availability Zones
+  #===============================================================
+
+  vpcMain: 
+      Type: AWS::EC2::VPC
+      Properties:
+          CidrBlock: !Ref paramVpcCIDR
+          EnableDnsHostnames: true
+          Tags: 
+              - Key: Name 
+                Value: !Ref paramEnvName
+          
+  internetGate:
+      Type: AWS::EC2::InternetGateway
+      Properties:
+          Tags:
+              - Key: Name
+                Value: !Ref paramEnvName
+          
+  internetGateAttach:
+      Type: AWS::EC2::VPCGatewayAttachment
+      Properties:
+          InternetGatewayId: !Ref internetGate
+          VpcId: !Ref vpcMain
+
+  # public routing table for vpc
+  
+  vpcPubRouteTable: # vpc routing table (initially empty)
+      Type: AWS::EC2::RouteTable
+      Properties: 
+          VpcId: !Ref vpcMain
+          Tags: 
+              - Key: Name 
+                Value: !Sub ${paramEnvName} Public Routes
+
+  vpcPubRouteDefault: # add a default rule to routing table
+      Type: AWS::EC2::Route
+      DependsOn: internetGateAttach
+      Properties: 
+          RouteTableId: !Ref vpcPubRouteTable
+          DestinationCidrBlock: 0.0.0.0/0
+          GatewayId: !Ref internetGate
+
+  #===============================================================
+  # Availability zone 1 - all network config
+  #===============================================================
+
+  AZ1PubSub: 
+      Type: AWS::EC2::Subnet
+      Properties:
+          VpcId: !Ref vpcMain
+          AvailabilityZone: !Select [ 0, !GetAZs '' ]
+          CidrBlock: !Ref paramAZ1PubSubCIDR
+          MapPublicIpOnLaunch: true
+          Tags: 
+              - Key: Name 
+                Value: !Sub ${paramEnvName} Public Subnet (AZ1)
+
+  AZ1PrivSub: 
+      Type: AWS::EC2::Subnet
+      Properties:
+          VpcId: !Ref vpcMain
+          AvailabilityZone: !Select [ 0, !GetAZs '' ]
+          CidrBlock: !Ref paramAZ1PrivSubCIDR
+          MapPublicIpOnLaunch: false
+          Tags: 
+              - Key: Name 
+                Value: !Sub ${paramEnvName} Private Subnet (AZ1)
+
+  # AZ1 - nat gateway
+
+  AZ1NatEIP:
+      Type: AWS::EC2::EIP
+      DependsOn: internetGateAttach
+      Properties: 
+          Domain: vpc
+
+  AZ1NatGate: 
+      Type: AWS::EC2::NatGateway
+      Properties: 
+          AllocationId: !GetAtt AZ1NatEIP.AllocationId
+          SubnetId: !Ref AZ1PubSub
+
+  # AZ1 public subnet uses vpc public routing
+
+  AZ1PubSubRouteTableAssociation: # associate the vpc routing table with the public subnet
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+          RouteTableId: !Ref vpcPubRouteTable
+          SubnetId: !Ref AZ1PubSub
+  
+  # AZ1 private subnet creates own routing
+  # connecting private subnet with internet through NAT gateway
+
+  AZ1PrivSubRouteTable:  # create private subnet routing table (initially empty)
+      Type: AWS::EC2::RouteTable
+      Properties: 
+          VpcId: !Ref vpcMain
+          Tags: 
+              - Key: Name 
+                Value: !Sub ${paramEnvName} Private Routes (AZ1)
+
+  AZ1PrivSubRouteDefault: # now add a default rule to routing table 
+      Type: AWS::EC2::Route
+      Properties:
+          RouteTableId: !Ref AZ1PrivSubRouteTable
+          DestinationCidrBlock: 0.0.0.0/0
+          NatGatewayId: !Ref AZ1NatGate
+
+  AZ1PrivSubRouteTableAssociation: # finally associate the routing table with a subnet
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+          RouteTableId: !Ref AZ1PrivSubRouteTable
+          SubnetId: !Ref AZ1PrivSub
+
+  #===============================================================
+  # Availability zone 2 - all network config
+  #===============================================================
+
+  AZ2PubSub: 
+      Type: AWS::EC2::Subnet
+      Properties:
+          VpcId: !Ref vpcMain
+          AvailabilityZone: !Select [ 1, !GetAZs '' ]
+          CidrBlock: !Ref paramAZ2PubSubCIDR
+          MapPublicIpOnLaunch: true
+          Tags: 
+              - Key: Name 
+                Value: !Sub ${paramEnvName} Public Subnet (AZ2)
+
+  AZ2PrivSub: 
+      Type: AWS::EC2::Subnet
+      Properties:
+          VpcId: !Ref vpcMain
+          AvailabilityZone: !Select [ 1, !GetAZs '' ]
+          CidrBlock: !Ref paramAZ2PrivSubCIDR
+          MapPublicIpOnLaunch: false
+          Tags: 
+              - Key: Name 
+                Value: !Sub ${paramEnvName} Private Subnet (AZ2)
+
+  # AZ2 - nat gateway
+
+  AZ2NatEIP:
+      Type: AWS::EC2::EIP
+      DependsOn: internetGateAttach
+      Properties: 
+          Domain: vpc
+
+  AZ2NatGate: 
+      Type: AWS::EC2::NatGateway
+      Properties: 
+          AllocationId: !GetAtt AZ2NatEIP.AllocationId
+          SubnetId: !Ref AZ2PubSub
+
+  # AZ2 public subnet uses vpc public routing
+
+  AZ2PubSubRouteTableAssociation: # associate the vpc routing table with the public subnet
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+          RouteTableId: !Ref vpcPubRouteTable
+          SubnetId: !Ref AZ2PubSub
+  
+  # AZ2 private subnet creates own routing
+  # connecting private subnet with internet through NAT gateway
+
+  AZ2PrivSubRouteTable: # create private subnet routing table (initially empty)
+      Type: AWS::EC2::RouteTable
+      Properties: 
+          VpcId: !Ref vpcMain
+          Tags: 
+              - Key: Name 
+                Value: !Sub ${paramEnvName} Private Routes (AZ2)
+
+  AZ2PrivSubRouteDefault: # now add a default rule to routing table 
+      Type: AWS::EC2::Route
+      Properties:
+          RouteTableId: !Ref AZ2PrivSubRouteTable
+          DestinationCidrBlock: 0.0.0.0/0
+          NatGatewayId: !Ref AZ2NatGate
+
+  AZ2PrivSubRouteTableAssociation: # finally associate the routing table with a subnet
+      Type: AWS::EC2::SubnetRouteTableAssociation
+      Properties:
+          RouteTableId: !Ref AZ2PrivSubRouteTable
+          SubnetId: !Ref AZ2PrivSub
+
+
+#================================================================
+
+Outputs: 
+
+  Vpcid: 
+      Description: A reference to the software external URL for thsi cluster
+      Value: !Ref vpcMain
+      Export:
+          Name: !Sub ${paramEnvName}-VPCID
+
+  BastionSubnet:
+      Description: A reference to the software external URL for thsi cluster
+      Value: !Ref AZ1PubSub
+      Export:
+          Name: !Sub ${paramEnvName}-Bastion-Subnet
+
+
+

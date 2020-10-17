@@ -1,12 +1,10 @@
 go: main.go 
 	# ------------------------------------------------------
 	# build the go executable
-	export GOPATH=${PWD}/tmpbuild
-	mkdir -p ${GOPATH}
-	go get github.com/gorilla/websocket
-	go get github.com/timtadh/getopt
-	go build -o eyes-go-server .
-	../bin/golangci-lint run ./*.go
+	mkdir -p ${PWD}/tmpbuild
+	GOPATH=${PWD}/tmpbuild go get github.com/gorilla/websocket
+	GOPATH=${PWD}/tmpbuild go get github.com/timtadh/getopt
+	GOPATH=${PWD}/tmpbuild go build -o eyes-go-server .
 
 lint:
 	# ------------------------------------------------------
@@ -14,7 +12,7 @@ lint:
 	mkdir -p ${PWD}/tmpbuild
 	GOPATH=${PWD}/tmpbuild go get github.com/gorilla/websocket
 	GOPATH=${PWD}/tmpbuild go get github.com/timtadh/getopt
-	../bin/golangci-lint run ./*.go
+	GOPATH=${PWD}/tmpbuild go ../bin/golangci-lint run ./*.go
 	# ------------------------------------------------------
 	# See local hadolint install instructions:   https://github.com/hadolint/hadolint
 	# This is linter for Dockerfiles

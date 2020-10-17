@@ -11,7 +11,7 @@ go: main.go
 lint:
 	# ------------------------------------------------------
 	# go linter
-	mkdir -p ${GOPATH}/tmpbuild
+	mkdir -p ${PWD}/tmpbuild
 	GOPATH=${PWD}/tmpbuild go get github.com/gorilla/websocket
 	GOPATH=${PWD}/tmpbuild go get github.com/timtadh/getopt
 	../bin/golangci-lint run ./*.go

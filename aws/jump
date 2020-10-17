@@ -1,0 +1,6 @@
+#!/bin/bash -x
+
+# echo "scp -i ~/.ssh/udp2-ssh-bastion.pem /home/simon/.ssh/udp2-ssh-privatesubnet.pem ubuntu@$1:"
+# scp -i ~/.ssh/udp2-ssh-bastion.pem ~/.ssh/udp2-ssh-privatesubnet.pem ubuntu@$1:
+# echo "ssh -i ~/.ssh/udp2-ssh-bastion.pem ubuntu@$1"
+ssh -i ~/.ssh/udcap-ssh-bastion.pem ubuntu@$( aws cloudformation list-exports | awk '/Name: .*-Bastion-DNS/ { getline ; print $NF }' )

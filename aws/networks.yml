@@ -236,9 +236,9 @@ Resources:
 
 #================================================================
 
-Outputs: 
+Outputs:
 
-  Vpcid: 
+  Vpcid:
       Description: A reference to the software external URL for thsi cluster
       Value: !Ref vpcMain
       Export:
@@ -249,6 +249,4 @@ Outputs:
       Value: !Ref AZ1PubSub
       Export:
           Name: !Sub ${paramEnvName}-Bastion-Subnet
-
-
 

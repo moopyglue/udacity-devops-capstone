@@ -4,7 +4,8 @@ FROM debian:buster-slim
 RUN useradd --home-dir /app --create-home --shell /bin/bash app
 
 USER app
-COPY . /app
+COPY eyes-go-server entrypoint.bash /app/
+COPY html /app/html/
 
 ENTRYPOINT ["/app/entrypoint.bash"]
 

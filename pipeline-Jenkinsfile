@@ -8,29 +8,24 @@ pipeline {
                 sh "cd eyes-server ; make lint"
             }
         }
-        stage('COMPILE') {
+        stage('Build go executable and docker file image') {
             steps {
                 sh "cd eyes-server ; make all"
             }
         }
-        stage('Security Check') {
+        stage('Security Check - EMPTY') {
             steps {
                 echo 'Run the security check against the application' 
             }
         }
-        stage('Run Unit Tests') {
+        stage('Run Unit Tests - EMPTY') {
             steps {
                 echo 'Run unit tests from the source code' 
             }
         }
-        stage('Run Integration Tests') {
+        stage('Publish docker container') {
             steps {
-                echo 'Run only crucial integration tests from the source code' 
-            }
-        }
-        stage('Publish Artifacts') {
-            steps {
-                echo 'Save the assemblies generated from the compilation' 
+                sh "cd eyes-server ; ./upload_docker.bash"
             }
         }
     }

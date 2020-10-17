@@ -1,15 +1,16 @@
 pipeline {
     agent any 
     stages {
-        stage('Static Analysis') {
+        stage('Lint Analysis') {
             steps {
                 echo 'Run the static analysis to the code' 
                 sh "/usr/bin/env"
+                sh "cd eyes-server ; make lint"
             }
         }
         stage('COMPILE') {
             steps {
-                echo 'COMPILE the source code' 
+                sh "cd eyes-server ; make all"
             }
         }
         stage('Security Check') {

@@ -1,7 +1,8 @@
 go: main.go 
 	# ------------------------------------------------------
 	# build the go executable
-	export GOPATH=$PWD/tmpbuild
+	export GOPATH=${PWD}/tmpbuild
+	mkdir -p ${GOPATH}
 	go get github.com/gorilla/websocket
 	go get github.com/timtadh/getopt
 	go build -o eyes-go-server .
@@ -10,6 +11,9 @@ go: main.go
 lint:
 	# ------------------------------------------------------
 	# go linter
+	mkdir -p ${GOPATH}/tmpbuild
+	GOPATH=${PWD}/tmpbuild go get github.com/gorilla/websocket
+	GOPATH=${PWD}/tmpbuild go get github.com/timtadh/getopt
 	../bin/golangci-lint run ./*.go
 	# ------------------------------------------------------
 	# See local hadolint install instructions:   https://github.com/hadolint/hadolint

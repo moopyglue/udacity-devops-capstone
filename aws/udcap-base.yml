@@ -11,39 +11,35 @@ Parameters:
   #  Parameters (all start param* )
   #=============================================================
 
-  paramEnvName:
-    Description: The environment name
-    Type: String
-
   paramVpcCIDR: 
     Description: IP range (CIDR notation) for this VPC
     Type: String
     Default: 10.0.0.0/16
 
   paramAZ1PubSubCIDR:
-    Description: IP range (CIDR notation) for the Public subnet in the first Availability Zone
+    Description: Avail zone 1 - Public Subnet CIDR
     Type: String
     Default: 10.0.0.0/24
 
   paramAZ2PubSubCIDR:
-    Description: IP range (CIDR notation) for the Public subnet in the second Availability Zone
+    Description: Avail zone 2 - Public Subnet CIDR
     Type: String
     Default: 10.0.1.0/24
 
   paramAZ1PrivSubCIDR:
-    Description: IP range (CIDR notation) for the Private subnet in the first Availability Zone
+    Description: Avail zone 1 - Private Subnet CIDR
     Type: String
     Default: 10.0.2.0/24
 
   paramAZ2PrivSubCIDR:
-    Description: IP range (CIDR notation) for the Private subnet in the second Availability Zone
+    Description: Avail zone 2 - Private Subnet CIDR
     Type: String
     Default: 10.0.3.0/24
 
 
 Resources:
 
-  # ___________________________________ N E T W O R K ___________________________________________
+  # _____________________________ N E T W O R K _______________________________
 
   #===============================================================
   #  VPC network - does not reference subnets or availability Zones
@@ -53,17 +49,11 @@ Resources:
       Type: AWS::EC2::VPC
       Properties:
           CidrBlock: !Ref paramVpcCIDR
+          EnableDnsSupport: true
           EnableDnsHostnames: true
-          Tags: 
-              - Key: Name 
-                Value: !Ref paramEnvName
           
   internetGate:
       Type: AWS::EC2::InternetGateway
-      Properties:
-          Tags:
-              - Key: Name
-                Value: !Ref paramEnvName
           
   internetGateAttach:
       Type: AWS::EC2::VPCGatewayAttachment
@@ -77,9 +67,6 @@ Resources:
       Type: AWS::EC2::RouteTable
       Properties: 
           VpcId: !Ref vpcMain
-          Tags: 
-              - Key: Name 
-                Value: !Sub ${paramEnvName} Public Routes
 
   vpcPubRouteDefault: # add a default rule to routing table
       Type: AWS::EC2::Route
@@ -100,9 +87,6 @@ Resources:
           AvailabilityZone: !Select [ 0, !GetAZs '' ]
           CidrBlock: !Ref paramAZ1PubSubCIDR
           MapPublicIpOnLaunch: true
-          Tags: 
-              - Key: Name 
-                Value: !Sub ${paramEnvName} Public Subnet (AZ1)
 
   AZ1PrivSub: 
       Type: AWS::EC2::Subnet
@@ -111,9 +95,6 @@ Resources:
           AvailabilityZone: !Select [ 0, !GetAZs '' ]
           CidrBlock: !Ref paramAZ1PrivSubCIDR
           MapPublicIpOnLaunch: false
-          Tags: 
-              - Key: Name 
-                Value: !Sub ${paramEnvName} Private Subnet (AZ1)
 
   # AZ1 - nat gateway
 
@@ -144,9 +125,6 @@ Resources:
       Type: AWS::EC2::RouteTable
       Properties: 
           VpcId: !Ref vpcMain
-          Tags: 
-              - Key: Name 
-                Value: !Sub ${paramEnvName} Private Routes (AZ1)
 
   AZ1PrivSubRouteDefault: # now add a default rule to routing table 
       Type: AWS::EC2::Route
@@ -172,9 +150,6 @@ Resources:
           AvailabilityZone: !Select [ 1, !GetAZs '' ]
           CidrBlock: !Ref paramAZ2PubSubCIDR
           MapPublicIpOnLaunch: true
-          Tags: 
-              - Key: Name 
-                Value: !Sub ${paramEnvName} Public Subnet (AZ2)
 
   AZ2PrivSub: 
       Type: AWS::EC2::Subnet
@@ -183,9 +158,6 @@ Resources:
           AvailabilityZone: !Select [ 1, !GetAZs '' ]
           CidrBlock: !Ref paramAZ2PrivSubCIDR
           MapPublicIpOnLaunch: false
-          Tags: 
-              - Key: Name 
-                Value: !Sub ${paramEnvName} Private Subnet (AZ2)
 
   # AZ2 - nat gateway
 
@@ -216,9 +188,6 @@ Resources:
       Type: AWS::EC2::RouteTable
       Properties: 
           VpcId: !Ref vpcMain
-          Tags: 
-              - Key: Name 
-                Value: !Sub ${paramEnvName} Private Routes (AZ2)
 
   AZ2PrivSubRouteDefault: # now add a default rule to routing table 
       Type: AWS::EC2::Route
@@ -236,17 +205,105 @@ Resources:
 
 #================================================================
 
+  ClusterSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+       GroupDescription: Cluster security group
+       VpcId: !Ref vpcMain
+       SecurityGroupIngress:
+          - IpProtocol: tcp
+            FromPort: 6000   # http access to server from externally
+            ToPort:   6600
+            CidrIp: 0.0.0.0/0
+          - IpProtocol: tcp  # ssh access to host from bastion host
+            FromPort: 22
+            ToPort: 22
+            CidrIp: 0.0.0.0/0
+       SecurityGroupEgress:
+          - IpProtocol: tcp # open all ports for external access
+            FromPort: 0
+            ToPort: 65535
+            CidrIp: 0.0.0.0/0
+
+  EKSIAMRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - eks.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - arn:aws:iam::aws:policy/AmazonEKSClusterPolicy
+        - arn:aws:iam::aws:policy/AmazonEKSServicePolicy
+
+  CapCluster:
+        Type: AWS::EKS::Cluster
+        Properties:
+            Name: !Sub '${AWS::StackName}-cluster'
+            Version: '1.15'
+            RoleArn: !GetAtt EKSIAMRole.Arn
+            ResourcesVpcConfig:
+                SecurityGroupIds:
+                -   !Ref ClusterSecurityGroup
+                SubnetIds:
+                -   !Ref AZ1PrivSub
+                -   !Ref AZ2PrivSub
+
+
+#================================================================
+
 Outputs:
 
   Vpcid:
       Description: A reference to the software external URL for thsi cluster
       Value: !Ref vpcMain
       Export:
-          Name: !Sub ${paramEnvName}-VPCID
+         Name: !Sub ${AWS::StackName}-vpcid
 
   BastionSubnet:
       Description: A reference to the software external URL for thsi cluster
       Value: !Ref AZ1PubSub
       Export:
-          Name: !Sub ${paramEnvName}-Bastion-Subnet
+         Name: !Sub ${AWS::StackName}-bastion-subnet
+
+  PrivSubnetIds:
+    Description: Subnets IDs in the VPC
+    Value: !Join [ ",", [ !Ref AZ1PrivSub, !Ref AZ2PrivSub ] ]
+    Export:
+       Name: !Sub ${AWS::StackName}-privsubnets
+
+  PubSubnetIds:
+    Description: Subnets IDs in the VPC
+    Value: !Join [ ",", [ !Ref AZ1PubSub, !Ref AZ2PubSub ] ]
+    Export:
+       Name: !Sub ${AWS::StackName}-pubsubnets
+
+  ClusterName:
+    Description: Name of the cluster
+    Value: !Sub '${AWS::StackName}-cluster'
+    Export:
+       Name: !Sub '${AWS::StackName}-cluster'
+
+  SecurityGroups:
+    Description: Security group for the cluster control plane communication with worker nodes
+    Value: !Join [ ",", [ !Ref ClusterSecurityGroup ] ]
+    Export:
+       Name: !Sub '${AWS::StackName}-secgroups'
+
+  EKS:
+        Description: EKS Cluster
+        Value: !Ref CapCluster
+        Export:
+            Name: !Sub '${AWS::StackName}-eks'
+
+  EKSEndpoint:
+        Value: !GetAtt CapCluster.Endpoint
+        Description: Cluster Endpoint
+        Export:
+            Name: !Sub '${AWS::StackName}-eks-endpoint'
 

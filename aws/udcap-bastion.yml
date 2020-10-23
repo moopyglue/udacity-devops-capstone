@@ -2,15 +2,10 @@ Description: >
   Simon Wall / MoopyGlue
 
 Parameters:
-
-  paramEnvName:
+  networkStack:
       Description: Single Parameter that we are passing with the env name.
       Type: String
-
-  paramSafeIpSource:
-      Description: Single Parameter that we are passing with the env name.
-      Type: String
-      Default: 82.34.193.156/32
+      Default: "udcap-base"
 
 Resources:
 
@@ -22,13 +17,13 @@ Resources:
     Type: AWS::EC2::SecurityGroup
     Properties: 
         VpcId:
-          Fn::ImportValue: !Sub "${paramEnvName}-VPCID"
+          Fn::ImportValue: !Sub "${networkStack}-vpcid"
         GroupDescription: Security Group Bastion Host
         SecurityGroupIngress:
         - IpProtocol: tcp  # ssh access to bastion host from single IP
           FromPort: 22
           ToPort: 22
-          CidrIp: !Sub ${paramSafeIpSource}
+          CidrIp: 82.34.193.156/32
         SecurityGroupEgress:
         - IpProtocol: tcp # ssh access to stack servers
           FromPort: 0
@@ -44,6 +39,8 @@ Resources:
           apt update -y
           export DEBIAN_FRONTEND=noninteractive
           apt upgrade -y
+          sudo snap install kubectl --classic
+          sudo snap install aws-cli --classic
       # Amazon Image ami-003634241a8fcdec0 : Ubuntu Server 18.04 LTS
       # NOTE: this image uses account 'ubuntu' instead of 'ec2-user'
       ImageId: ami-003634241a8fcdec0
@@ -51,13 +48,11 @@ Resources:
       InstanceType: t3.micro
       SecurityGroupIds : [ !GetAtt SGBastion.GroupId ]
       SubnetId: 
-        Fn::ImportValue: !Sub "${paramEnvName}-Bastion-Subnet"
+        Fn::ImportValue: !Sub "${networkStack}-bastion-subnet"
       BlockDeviceMappings:
       - DeviceName: "/dev/sdk"
         Ebs:
           VolumeSize: '10'
-
-#================================================================
 
 Outputs:
 
@@ -65,11 +60,10 @@ Outputs:
       Description: A reference to the software external URL for thsi cluster
       Value: !GetAtt Bastion.PublicDnsName
       Export:
-          Name: !Sub ${paramEnvName}-Bastion-DNS
+          Name: !Sub ${networkStack}-bastion-dns
 
   BastionIp:
       Description: A reference to the software external URL for thsi cluster
       Value: !GetAtt Bastion.PublicIp
       Export:
-          Name: !Sub ${paramEnvName}-Bastion-IP
-
+          Name: !Sub ${networkStack}-bastion-ip

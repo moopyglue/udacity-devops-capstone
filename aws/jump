@@ -1,6 +1,14 @@
-#!/bin/bash -x
+#!/bin/bash 
 
-# echo "scp -i ~/.ssh/udp2-ssh-bastion.pem /home/simon/.ssh/udp2-ssh-privatesubnet.pem ubuntu@$1:"
+script=$(basename $0)
+function die () { echo "${script} $@" 1>&2 ; exit 1 ; }
+
 # scp -i ~/.ssh/udp2-ssh-bastion.pem ~/.ssh/udp2-ssh-privatesubnet.pem ubuntu@$1:
-# echo "ssh -i ~/.ssh/udp2-ssh-bastion.pem ubuntu@$1"
-ssh -i ~/.ssh/udcap-ssh-bastion.pem ubuntu@$( aws cloudformation list-exports | awk '/Name: .*-Bastion-DNS/ { getline ; print $NF }' )
+echo looking for bastion host...
+bastion_dns="$( aws cloudformation list-exports | awk '/Name: udcap-base-bastion-ip/ { getline ; print $NF }' )"
+[[ $bastion_dns == "" ]] && die "could not find bastion host"
+echo found: $bastion_dns
+
+set -x
+scp -i ~/.ssh/udcap-ssh-bastion.pem ~/.ssh/udcap-ssh-nodes.pem ubuntu@${bastion_dns}:
+ssh -i ~/.ssh/udcap-ssh-bastion.pem ubuntu@$bastion_dns

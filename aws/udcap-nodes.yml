@@ -1,0 +1,59 @@
+Parameters:
+
+    networkStack:
+      Description: Single Parameter that we are passing with the env name.
+      Type: String
+      Default: "udcap-base"
+
+    WorkerInstanceType:
+        Description: EC2 instance type for the worker node instances.
+        Type: String
+        Default: t2.micro
+
+    sshKeyName:
+        Description: Node SSH keypair name
+        Type: String
+        Default: udcap-ssh-nodes
+
+Resources:
+
+  WorkerRole:
+        Type: "AWS::IAM::Role"
+        Properties:
+            AssumeRolePolicyDocument:
+                Version: "2012-10-17"
+                Statement:
+                -   Effect: Allow
+                    Principal:
+                        Service:
+                        -   ec2.amazonaws.com
+                    Action:
+                    -   "sts:AssumeRole"
+            ManagedPolicyArns:
+            -   "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+            -   "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+            -   "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+
+  NodeGroup:
+        Type: 'AWS::EKS::Nodegroup'
+        Properties:
+            ClusterName: 
+                Fn::ImportValue: !Sub "${networkStack}-cluster"
+            NodeRole: !GetAtt WorkerRole.Arn
+            InstanceTypes:
+            -   !Ref WorkerInstanceType
+            RemoteAccess:
+                Ec2SshKey: !Ref sshKeyName
+            Subnets:
+                !Split [ ",", Fn::ImportValue: !Sub "${networkStack}-privsubnets" ] 
+            ScalingConfig:
+                DesiredSize: 2
+                MinSize: 1
+                MaxSize: 3
+
+Outputs:
+
+    NodeGroupArn:
+        Value: !GetAtt NodeGroup.Arn
+        Description: Cluster Worker Nodes
+

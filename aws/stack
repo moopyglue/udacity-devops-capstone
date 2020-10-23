@@ -1,15 +1,17 @@
 #!/bin/bash
 
-stackid="$(cat stack-id)"
-action=$1 ; shift
-name=$1 ; shift
+action=$1  ; shift
+stackid=${1%.yml} ; shift
+
 cmd="
     aws cloudformation $action-stack \
-    --stack-name $stackid-$name \
-    $( [[ "$action" == delete ]] || echo "--template-body file://$name.yml" ) \
-    $( [[ "$action" == delete ]] || echo "--parameters file://${name}_params.json" ) \
-    --region=us-west-2 $@
+    --stack-name $stackid \
+    $( [[ "$action" == delete ]] || echo "--template-body file://$stackid.yml" ) \
+    --region=us-west-2 $@  \
+    $( [[ "$action" == delete ]] || echo "--capabilities CAPABILITY_NAMED_IAM" ) 
 "
 echo $cmd
 $cmd
+
+exit $?
 

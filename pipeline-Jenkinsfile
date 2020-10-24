@@ -20,6 +20,8 @@ pipeline {
         }
         stage('Refresh application') {
             steps {
+                sh "aws configure list"
+                sh "aws eks --region us-west-2  update-kubeconfig --name udcap-base-cluster"
                 sh "kubectl set image deployment/eyes eyes=qmkey/udacity-capstone-eyes:v${BUILD_NUMBER}"
             }
         }

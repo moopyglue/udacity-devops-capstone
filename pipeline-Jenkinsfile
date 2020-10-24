@@ -20,7 +20,7 @@ pipeline {
         }
         stage('Refresh application') {
             steps {
-                sh "kubectl apply -y kubernetes/k8-config.yaml "
+                sh "kubectl set image deployment/eyes eyes=qmkey/udacity-capstone-eyes:v${BUILD_NUMBER}"
             }
         }
     }

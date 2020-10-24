@@ -21,7 +21,7 @@ pipeline {
         stage('Refresh Hub instance (Database)') {
             steps {
                 sh "./cloudformation/jump sudo docker pull qmkey/udacity-capstone-eyes:latest"
-                sh "./cloudformation/jump sudo docker stop eyes
+                sh "./cloudformation/jump sudo docker stop eyes"
                 sh "./cloudformation/jump sudo docker run --rm -d --name eyes -p 7777:7777 qmkey/udacity-capstone-eyes:latest hub"
                 sh "sleep 30"
             }

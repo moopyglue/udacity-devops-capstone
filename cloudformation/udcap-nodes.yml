@@ -3,7 +3,7 @@ Parameters:
     networkStack:
       Description: Single Parameter that we are passing with the env name.
       Type: String
-      Default: "udcap2-base"
+      Default: "udcap-base"
 
     WorkerInstanceType:
         Description: EC2 instance type for the worker node instances.
@@ -48,7 +48,7 @@ Resources:
                 !Split [ ",", Fn::ImportValue: !Sub "${networkStack}-pubsubnets" ] 
             ScalingConfig:
                 DesiredSize: 3
-                MinSize: 2
+                MinSize: 1
                 MaxSize: 5
 
 Outputs:

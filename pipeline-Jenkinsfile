@@ -4,28 +4,23 @@ pipeline {
         stage('Lint Analysis') {
             steps {
                 echo 'Run the static analysis to the code' 
-                sh "/usr/bin/env"
+                sh "/usr/bin/env | /bin/sort"
                 sh "cd eyes-server ; make lint"
             }
         }
         stage('Build go executable and docker file image') {
             steps {
-                sh "cd eyes-server ; make all"
-            }
-        }
-        stage('Security Check - EMPTY') {
-            steps {
-                echo 'Run the security check against the application' 
-            }
-        }
-        stage('Run Unit Tests - EMPTY') {
-            steps {
-                echo 'Run unit tests from the source code' 
+                sh "cd eyes-server ; make build"
             }
         }
         stage('Publish docker container') {
             steps {
-                sh "cd eyes-server ; ./upload_docker.bash"
+                sh "cd eyes-server ; make upload"
+            }
+        }
+        stage('Publish docker container') {
+            steps {
+                sh "cd eyes-server ; make upload"
             }
         }
     }

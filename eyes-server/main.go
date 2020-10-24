@@ -20,8 +20,8 @@
 package main
 
 import (
-	"fmt"
     "bytes"
+    "log"
     "sync"
     "strings"
     "net"
@@ -76,12 +76,12 @@ func sendSession(w http.ResponseWriter, r *http.Request) {
     sid:=r.URL.Query().Get("s");
     gid:=r.URL.Query().Get("g");
     logtag:=sid+":  in: ";
-    fmt.Println(logtag,"started: adding in client ",gid)
+    log.Print(logtag,"started: adding in client ",gid)
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-        fmt.Println(logtag,err);
-        fmt.Println(logtag,"exiting")
+        log.Print(logtag,err);
+        log.Print(logtag,"exiting")
         return
     }
 
@@ -90,8 +90,8 @@ func sendSession(w http.ResponseWriter, r *http.Request) {
 	for {
 		_, rec_mess, err := conn.ReadMessage()
 		if err != nil {
-            fmt.Println(logtag,err);
-            fmt.Println(logtag,"exiting")
+            log.Print(logtag,err);
+            log.Print(logtag,"exiting")
             sendUnlink(sid)
             return
         }
@@ -104,12 +104,12 @@ func getSession(w http.ResponseWriter, r *http.Request) {
 	//var m []byte("hello")
     id:=r.URL.Query().Get("g");
     logtag:=id+": out: ";
-    fmt.Println(logtag,"started")
+    log.Print(logtag,"started")
 
 	conn, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
-        fmt.Println(logtag,err);
-        fmt.Println(logtag,"exiting")
+        log.Print(logtag,err);
+        log.Print(logtag,"exiting")
         return
     }
 
@@ -125,14 +125,14 @@ func getSession(w http.ResponseWriter, r *http.Request) {
         if( !bytes.Equal(get_mess, lastv) || nosend > 100 ) {
 	        var err = conn.WriteMessage(1,get_mess)
 	        if err != nil {
-                fmt.Println(logtag,err);
-                fmt.Println(logtag,"exiting")
+                log.Print(logtag,err);
+                log.Print(logtag,"exiting")
                 mux.Lock()
                 delete(active_getters,id)
                 mux.Unlock()
                 return
             }
-	        fmt.Println(logtag,string(get_mess))
+	        log.Print(logtag,string(get_mess))
             nosend = 0
         } else {
             nosend++
@@ -143,7 +143,7 @@ func getSession(w http.ResponseWriter, r *http.Request) {
 }
 
 func saveMessage(id string,mess []byte,shareit bool) {
-	fmt.Println("saveMessage: send,"+id+string(mess))
+	log.Print("saveMessage: send,"+id+string(mess))
     m := message{value:mess}
     m.mtime=time.Now().Unix()
     mux.Lock()
@@ -171,7 +171,7 @@ func getMessage(gid string) (mess []byte){
 
 func crossLink(getter_id string,sender_id string,shareit bool) {
     if( getter_id != "" ) {
-	    fmt.Println("crossLink link,"+getter_id+","+sender_id)
+	    log.Print("crossLink link,"+getter_id+","+sender_id)
         s := link{value:sender_id}
         s.mtime=time.Now().Unix()
         mux.Lock()
@@ -192,7 +192,7 @@ func sendUnlink(gid string) {
 func monitor() {
     for {
         time.Sleep(60000*time.Millisecond);
-        fmt.Println("event_queue",len(event_queue),"daemon_chans",len(daemon_chans));
+        log.Print("event_queue:",len(event_queue)," daemon_chans:",len(daemon_chans));
     }
 }
 
@@ -235,11 +235,11 @@ func share_client(dbServ string) {
         // connect to server port
         c, err := net.Dial("tcp", dbServ)
         if err != nil {
-            fmt.Println("share_client: Dial failed:", err.Error())
+            log.Print("share_client: Dial failed: ", err.Error())
 	        time.Sleep(3*sec);
             continue
         }
-        fmt.Println("share_client: connected to", dbServ )
+        log.Print("share_client: connected to ", dbServ )
 
         stop := make(chan bool)
 
@@ -256,14 +256,14 @@ func share_client(dbServ string) {
         mux.RUnlock()
         _, err = io.WriteString(c,bootstring)
         if err != nil {
-            fmt.Println("share_client: failed writing boot string to hub:", err.Error())
+            log.Print("share_client: failed writing boot string to hub: ", err.Error())
             c.Close()
             continue
         }
 
         // go routine loop where we share data sent via 'event_queue' with remote database
         go func() {
-            fmt.Println("share_client: waiting on new messages")
+            log.Print("share_client: waiting on new messages")
             for {
 
                 s:=""
@@ -275,7 +275,7 @@ func share_client(dbServ string) {
 
                 _, err = io.WriteString(c,s+"\n")
                 if err != nil {
-                    fmt.Println("share_client: Write to server failed:", err.Error())
+                    log.Print("share_client: Write to server failed: ", err.Error())
                     break
                 }
             }
@@ -298,7 +298,7 @@ func share_client(dbServ string) {
                 } else if a[0] == "link" {
                     crossLink(a[1],a[2],false)
                 }
-                fmt.Println("share_client: Read:",input.Text())
+                log.Print("share_client: Read: ",input.Text())
             }
 
             c.Close()
@@ -307,7 +307,7 @@ func share_client(dbServ string) {
 
         <-stop
         <-stop
-        fmt.Println("share_client: stopped")
+        log.Print("share_client: stopped")
 
     }
 
@@ -317,17 +317,17 @@ func share_daemon(dbPort string) {
 
     //tcpAddr, err := net.ResolveTCPAddr("tcp4",dbPort)
     //if err != nil {
-        //fmt.Println("share_daemon: ResolveTCPAddr:", err.Error())
+        //log.Print("share_daemon: ResolveTCPAddr: ", err.Error())
         //os.Exit(30)
     //}
-    //fmt.Println("share_daemon: ResolveTCPAddr:",tcpAddr)
+    //log.Print("share_daemon: ResolveTCPAddr: ",tcpAddr)
 
     listener, err := net.Listen("tcp4",dbPort)
     if err != nil {
-        fmt.Println("share_daemon: Listen:", err.Error())
+        log.Print("share_daemon: Listen: ", err.Error())
         select { }
     }
-    fmt.Println("share_daemon: Listen now active:",listener)
+    log.Print("share_daemon: Listen now active: ",listener)
 
     // accept connections from share clients
     // we will 
@@ -335,10 +335,10 @@ func share_daemon(dbPort string) {
         for {
             conn, err := listener.Accept()
             if err != nil {
-                fmt.Println("share_daemon: Listener.Accept():", err.Error())
+                log.Print("share_daemon: Listener.Accept(): ", err.Error())
                 os.Exit(32)
             }
-            fmt.Println("share_daemon: Accept:",listener)
+            log.Print("share_daemon: Accept: ",listener)
             go share_daemon_peer(conn)
         }
     }()
@@ -360,7 +360,7 @@ func share_daemon_peer(c net.Conn) {
 
     // go routine to listen for notifications on newly created channel
     go func() {
-        fmt.Println("share_daemon_peer: listening on peerChan:",peerID)
+        log.Print("share_daemon_peer: listening on peerChan: ",peerID)
         for {
             s:=""
             select {
@@ -371,7 +371,7 @@ func share_daemon_peer(c net.Conn) {
 
             _, err := io.WriteString(c,s+"\n")
             if err != nil {
-                fmt.Println("share_client: Write to server failed:", err.Error())
+                log.Print("share_client: Write to server failed: ", err.Error())
                 break
             }
         }
@@ -381,13 +381,13 @@ func share_daemon_peer(c net.Conn) {
 
     // go routine to recived client messages and share with other registered clients 
     go func() {
-        fmt.Println("share_daemon_peer: waiting on Network input:",peerID)
+        log.Print("share_daemon_peer: waiting on Network input: ",peerID)
         input := bufio.NewScanner(c)
         for input.Scan() {
             if input.Text() != "" {
                 a := strings.SplitN(input.Text(),",",3)
                 if len(a) != 3 {
-                    fmt.Println("share_daemon_peer: BAD COMS(1):",input.Text())
+                    log.Print("share_daemon_peer: BAD COMS(1): ",input.Text())
                     continue
                 }
                 if a[0] == "new_getter" {
@@ -411,7 +411,7 @@ func share_daemon_peer(c net.Conn) {
                 } else if a[0] != "send" {
                     // if not send that not a known request so marked as bad
                     // otherwise just let it be passed to other carriers
-                    fmt.Println("share_daemon_peer: BAD COMS(2):",input.Text())
+                    log.Print("share_daemon_peer: BAD COMS(2): ",input.Text())
                     continue
                 }
                 mux.RLock()
@@ -427,19 +427,21 @@ func share_daemon_peer(c net.Conn) {
         stop <- true
     }()
 
-    <- stop
-    <- stop
-    fmt.Println("share_daemon_peer: closed peer:",peerID)
+    <-stop
+    <-stop
+    log.Print("share_daemon_peer: closed peer: ",peerID)
 }
 
 func main() {
+
+    log.Print("v12")
 
 	short := "l:m:h:"
 	long := []string{ "listen","manager","hub" }
 
 	listenPort := "6001"
-    managerPort := "7001"
-    hubURL := "localhost:7001"
+    managerPort := "7777"
+    hubURL := "localhost:7777"
 
     otherargs, optargs, err := getopt.GetOpt(os.Args[1:], short, long)
 	for _, oa := range optargs {
@@ -458,20 +460,21 @@ func main() {
     } else {
         runtype = "standalone"
     }
+	log.Print("runtype: ",runtype)
     if runtype == "hub"  {
-	    fmt.Println("Hub Port:",managerPort);
+	    log.Print("Hub Port: ",managerPort);
         go share_daemon(":"+managerPort)
     } else if runtype == "carrier" {
-	    fmt.Println("Listening on Port:",listenPort);
-	    fmt.Println("  Manager on Port:",managerPort);
-	    fmt.Println("     Hub Location:",hubURL);
+	    log.Print("Listening on Port: ",listenPort);
+	    log.Print("Manager on Port: ",managerPort);
+	    log.Print("Hub Location: ",hubURL);
         go share_client(hubURL)
         go share_daemon(":"+managerPort)
     } else if runtype == "standalone" {
-	    fmt.Println("Listening on Port:",listenPort);
+	    log.Print("Listening on Port: ",listenPort);
         go share_client(hubURL)
     } else {
-	    fmt.Println("need to specify a run type of hub, carrier, or standalone");
+	    log.Print("need to specify a run type of hub, carrier, or standalone");
         os.Exit(1)
     }
 
@@ -485,7 +488,7 @@ func main() {
 	    http.HandleFunc("/get", getSession)
 	    http.Handle("/", http.FileServer(http.Dir("./html/")))
 
-	    fmt.Printf("Starting \n");
+	    log.Print("Starting \n");
 	    err2 := http.ListenAndServe(":"+listenPort, nil)
 	    if err2 != nil {
 		    panic("ListenAndServe: " + err.Error())

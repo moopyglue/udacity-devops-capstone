@@ -24,15 +24,15 @@ docker:
 	docker images eyes-server:latest
 	../bin/hadolint Dockerfile
 	
-all: go docker 
+build: go docker 
 
-run: all foreground
+run: build foreground
 
-uploaddocker: all
+upload:
 	# 
 	./upload_docker.bash
 
-server: all background
+server: build background
 
 foreground:
 	# run 'all' then in foreground on port 6161
@@ -56,4 +56,4 @@ runcarrier2:
 
 runcarrier3:
 	docker run --rm --name eyes-carrier3 -p 6003:6001 eyes-server:latest carrier
-    
+ 

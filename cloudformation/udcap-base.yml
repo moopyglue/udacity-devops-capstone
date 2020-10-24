@@ -92,6 +92,17 @@ Resources:
     Properties:
        GroupDescription: Cluster security group
        VpcId: !Ref VPC
+       SecurityGroupIngress:
+        - IpProtocol: tcp  # ssh access to hub host from single IP
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 10.0.0.0/16
+       SecurityGroupEgress:
+        - IpProtocol: tcp # ssh access to stack servers
+          FromPort: 0
+          ToPort: 65535
+          CidrIp: 0.0.0.0/0
+
 
   EKSIAMRole:
     Type: AWS::IAM::Role

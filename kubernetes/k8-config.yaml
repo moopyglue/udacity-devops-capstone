@@ -1,0 +1,63 @@
+kind: Service
+apiVersion: v1
+metadata:
+ name: hubaddress
+spec:
+ type: ClusterIP
+ ports:
+ - port: 7777
+   targetPort: 7777
+---
+kind: Endpoints
+apiVersion: v1
+metadata:
+ name: hubaddress
+subsets:
+ - addresses:
+     - ip: 10.0.0.171
+   ports:
+     - port: 7777
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: eyes
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: eyes
+  template:
+    metadata:
+      labels:
+        app: eyes
+    spec:
+      containers:
+      - name: eyes
+        image: qmkey/udacity-capstone-eyes:latest
+        command: ["/app/entrypoint.bash"]
+        args: ["-h","hubaddress:7777","carrier"]
+        ports:
+        - containerPort: 6001
+        imagePullPolicy: Always
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1
+      maxSurge: 1
+  minReadySeconds: 30
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: eyes-service
+spec:
+  type: LoadBalancer
+  selector:
+    app: eyes
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 6001
+

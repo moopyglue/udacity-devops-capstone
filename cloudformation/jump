@@ -1,0 +1,13 @@
+#!/bin/bash 
+
+script=$(basename $0)
+function die () { echo "${script} $@" 1>&2 ; exit 1 ; }
+
+echo looking for hub host...
+hub_ip="$( aws cloudformation list-exports | awk '/Name: udcap-base-hub-pubip/ { getline ; print $NF }' )"
+[[ $hub_ip == "" ]] && die "could not find hub host"
+echo found: $hub_ip
+
+set -x
+scp -i ~/.ssh/udcap-ssh-hub.pem ../eyes-server/eyes-go-server ubuntu@${hub_ip}:
+ssh -i ~/.ssh/udcap-ssh-hub.pem ubuntu@$hub_ip

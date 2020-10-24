@@ -1,9 +1,0 @@
-kind: Service
-apiVersion: v1
-metadata:
- name: hubaddress
-Spec:
- type: ClusterIP
- ports:
- - port: 7777
-   targetPort: 7777

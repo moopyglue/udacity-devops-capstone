@@ -20,10 +20,14 @@ Resources:
           Fn::ImportValue: !Sub "${networkStack}-vpcid"
         GroupDescription: Security Group Hub Host
         SecurityGroupIngress:
-        - IpProtocol: tcp  # ssh access to bastion host from single IP
+        - IpProtocol: tcp  # ssh access to hub host from single IP
           FromPort: 22
           ToPort: 22
           CidrIp: 82.34.193.156/32
+        - IpProtocol: tcp  # ssh access to hub host from single IP
+          FromPort: 7777
+          ToPort: 7777
+          CidrIp: 10.0.0.0/16
         SecurityGroupEgress:
         - IpProtocol: tcp # ssh access to stack servers
           FromPort: 0
@@ -44,7 +48,7 @@ Resources:
       # Amazon Image ami-003634241a8fcdec0 : Ubuntu Server 18.04 LTS
       # NOTE: this image uses account 'ubuntu' instead of 'ec2-user'
       ImageId: ami-003634241a8fcdec0
-      KeyName: udcap-ssh-bastion
+      KeyName: udcap-ssh-hub
       InstanceType: t3.micro
       SecurityGroupIds : [ !GetAtt SGHub.GroupId ]
       SubnetId: 
@@ -60,10 +64,17 @@ Outputs:
       Description: A reference to the software external URL for thsi cluster
       Value: !GetAtt Hub.PublicDnsName
       Export:
-          Name: !Sub ${networkStack}-bastion-dns
+          Name: !Sub ${networkStack}-hub-dns
 
-  HubIp:
+  HubPubIp:
       Description: A reference to the software external URL for thsi cluster
       Value: !GetAtt Hub.PublicIp
       Export:
-          Name: !Sub ${networkStack}-bastion-ip
+          Name: !Sub ${networkStack}-hub-pubip
+
+  HubPrivIp:
+      Description: A reference to the software external URL for thsi cluster
+      Value: !GetAtt Hub.PrivateIp
+      Export:
+          Name: !Sub ${networkStack}-hub-privip
+

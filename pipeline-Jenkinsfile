@@ -10,6 +10,7 @@ pipeline {
         }
         stage('Build go executable and docker file image') {
             steps {
+                sh "docker image prune -f"
                 sh "cd eyes-server ; make build"
             }
         }
@@ -23,14 +24,19 @@ pipeline {
                 sh "./cloudformation/jump sudo docker pull qmkey/udacity-capstone-eyes:latest"
                 sh "./cloudformation/jump sudo docker stop eyes"
                 sh "./cloudformation/jump sudo docker run --rm -d --name eyes -p 7777:7777 qmkey/udacity-capstone-eyes:latest hub"
-                sh "sleep 30"
             }
+        }
+        stage('wait 30s for DB to reload') {
+            steps {
+                sh "sleep 30"
+            }    
         }
         stage('Refresh Kubernetes instances') {
             steps {
                 sh "aws configure list"
                 sh "aws eks --region us-west-2  update-kubeconfig --name udcap-base-cluster"
                 sh "kubectl set image deployment/eyes eyes=qmkey/udacity-capstone-eyes:v${BUILD_NUMBER}"
+                sh "kubectl rollout status deployment/eyes"
             }
         }
     }

@@ -7,48 +7,29 @@ Description: >
 
 Parameters:
 
-  #=============================================================
-  #  Parameters (all start param* )
-  #=============================================================
-
-  paramVpcCIDR: 
+  VpcCIDR: 
     Description: IP range (CIDR notation) for this VPC
     Type: String
     Default: 10.0.0.0/16
 
-  paramAZ1PubSubCIDR:
-    Description: Avail zone 1 - Public Subnet CIDR
+  Subnet1CIDR:
+    Description: Subnet 1
     Type: String
     Default: 10.0.0.0/24
 
-  paramAZ2PubSubCIDR:
-    Description: Avail zone 2 - Public Subnet CIDR
+  Subnet2CIDR:
+    Description: Subnet 2
     Type: String
     Default: 10.0.1.0/24
 
-  paramAZ1PrivSubCIDR:
-    Description: Avail zone 1 - Private Subnet CIDR
-    Type: String
-    Default: 10.0.2.0/24
-
-  paramAZ2PrivSubCIDR:
-    Description: Avail zone 2 - Private Subnet CIDR
-    Type: String
-    Default: 10.0.3.0/24
-
-
 Resources:
 
-  # _____________________________ N E T W O R K _______________________________
+#===============================================================
 
-  #===============================================================
-  #  VPC network - does not reference subnets or availability Zones
-  #===============================================================
-
-  vpcMain: 
+  VPC: 
       Type: AWS::EC2::VPC
       Properties:
-          CidrBlock: !Ref paramVpcCIDR
+          CidrBlock: !Ref VpcCIDR
           EnableDnsSupport: true
           EnableDnsHostnames: true
           
@@ -59,171 +40,58 @@ Resources:
       Type: AWS::EC2::VPCGatewayAttachment
       Properties:
           InternetGatewayId: !Ref internetGate
-          VpcId: !Ref vpcMain
+          VpcId: !Ref VPC
 
   # public routing table for vpc
   
-  vpcPubRouteTable: # vpc routing table (initially empty)
+  routeTable: # vpc routing table (initially empty)
       Type: AWS::EC2::RouteTable
       Properties: 
-          VpcId: !Ref vpcMain
+          VpcId: !Ref VPC
 
-  vpcPubRouteDefault: # add a default rule to routing table
+  routeDefault: # add a default rule to routing table
       Type: AWS::EC2::Route
       DependsOn: internetGateAttach
       Properties: 
-          RouteTableId: !Ref vpcPubRouteTable
+          RouteTableId: !Ref routeTable
           DestinationCidrBlock: 0.0.0.0/0
           GatewayId: !Ref internetGate
 
-  #===============================================================
-  # Availability zone 1 - all network config
-  #===============================================================
-
-  AZ1PubSub: 
+  Subnet1: 
       Type: AWS::EC2::Subnet
       Properties:
-          VpcId: !Ref vpcMain
+          VpcId: !Ref VPC
           AvailabilityZone: !Select [ 0, !GetAZs '' ]
-          CidrBlock: !Ref paramAZ1PubSubCIDR
+          CidrBlock: !Ref Subnet1CIDR
           MapPublicIpOnLaunch: true
 
-  AZ1PrivSub: 
-      Type: AWS::EC2::Subnet
-      Properties:
-          VpcId: !Ref vpcMain
-          AvailabilityZone: !Select [ 0, !GetAZs '' ]
-          CidrBlock: !Ref paramAZ1PrivSubCIDR
-          MapPublicIpOnLaunch: false
-
-  # AZ1 - nat gateway
-
-  AZ1NatEIP:
-      Type: AWS::EC2::EIP
-      DependsOn: internetGateAttach
-      Properties: 
-          Domain: vpc
-
-  AZ1NatGate: 
-      Type: AWS::EC2::NatGateway
-      Properties: 
-          AllocationId: !GetAtt AZ1NatEIP.AllocationId
-          SubnetId: !Ref AZ1PubSub
-
-  # AZ1 public subnet uses vpc public routing
-
-  AZ1PubSubRouteTableAssociation: # associate the vpc routing table with the public subnet
+  Subnet1Route: # associate the vpc routing table with the public subnet
       Type: AWS::EC2::SubnetRouteTableAssociation
       Properties:
-          RouteTableId: !Ref vpcPubRouteTable
-          SubnetId: !Ref AZ1PubSub
+          RouteTableId: !Ref routeTable
+          SubnetId: !Ref Subnet1
   
-  # AZ1 private subnet creates own routing
-  # connecting private subnet with internet through NAT gateway
-
-  AZ1PrivSubRouteTable:  # create private subnet routing table (initially empty)
-      Type: AWS::EC2::RouteTable
-      Properties: 
-          VpcId: !Ref vpcMain
-
-  AZ1PrivSubRouteDefault: # now add a default rule to routing table 
-      Type: AWS::EC2::Route
-      Properties:
-          RouteTableId: !Ref AZ1PrivSubRouteTable
-          DestinationCidrBlock: 0.0.0.0/0
-          NatGatewayId: !Ref AZ1NatGate
-
-  AZ1PrivSubRouteTableAssociation: # finally associate the routing table with a subnet
-      Type: AWS::EC2::SubnetRouteTableAssociation
-      Properties:
-          RouteTableId: !Ref AZ1PrivSubRouteTable
-          SubnetId: !Ref AZ1PrivSub
-
-  #===============================================================
-  # Availability zone 2 - all network config
-  #===============================================================
-
-  AZ2PubSub: 
+  Subnet2: 
       Type: AWS::EC2::Subnet
       Properties:
-          VpcId: !Ref vpcMain
+          VpcId: !Ref VPC
           AvailabilityZone: !Select [ 1, !GetAZs '' ]
-          CidrBlock: !Ref paramAZ2PubSubCIDR
+          CidrBlock: !Ref Subnet2CIDR
           MapPublicIpOnLaunch: true
 
-  AZ2PrivSub: 
-      Type: AWS::EC2::Subnet
-      Properties:
-          VpcId: !Ref vpcMain
-          AvailabilityZone: !Select [ 1, !GetAZs '' ]
-          CidrBlock: !Ref paramAZ2PrivSubCIDR
-          MapPublicIpOnLaunch: false
-
-  # AZ2 - nat gateway
-
-  AZ2NatEIP:
-      Type: AWS::EC2::EIP
-      DependsOn: internetGateAttach
-      Properties: 
-          Domain: vpc
-
-  AZ2NatGate: 
-      Type: AWS::EC2::NatGateway
-      Properties: 
-          AllocationId: !GetAtt AZ2NatEIP.AllocationId
-          SubnetId: !Ref AZ2PubSub
-
-  # AZ2 public subnet uses vpc public routing
-
-  AZ2PubSubRouteTableAssociation: # associate the vpc routing table with the public subnet
+  Subnet2Route: # associate the vpc routing table with the public subnet
       Type: AWS::EC2::SubnetRouteTableAssociation
       Properties:
-          RouteTableId: !Ref vpcPubRouteTable
-          SubnetId: !Ref AZ2PubSub
+          RouteTableId: !Ref routeTable
+          SubnetId: !Ref Subnet2
   
-  # AZ2 private subnet creates own routing
-  # connecting private subnet with internet through NAT gateway
-
-  AZ2PrivSubRouteTable: # create private subnet routing table (initially empty)
-      Type: AWS::EC2::RouteTable
-      Properties: 
-          VpcId: !Ref vpcMain
-
-  AZ2PrivSubRouteDefault: # now add a default rule to routing table 
-      Type: AWS::EC2::Route
-      Properties:
-          RouteTableId: !Ref AZ2PrivSubRouteTable
-          DestinationCidrBlock: 0.0.0.0/0
-          NatGatewayId: !Ref AZ2NatGate
-
-  AZ2PrivSubRouteTableAssociation: # finally associate the routing table with a subnet
-      Type: AWS::EC2::SubnetRouteTableAssociation
-      Properties:
-          RouteTableId: !Ref AZ2PrivSubRouteTable
-          SubnetId: !Ref AZ2PrivSub
-
-
 #================================================================
 
   ClusterSecurityGroup:
     Type: AWS::EC2::SecurityGroup
     Properties:
        GroupDescription: Cluster security group
-       VpcId: !Ref vpcMain
-       SecurityGroupIngress:
-          - IpProtocol: tcp
-            FromPort: 6000   # http access to server from externally
-            ToPort:   6600
-            CidrIp: 0.0.0.0/0
-          - IpProtocol: tcp  # ssh access to host from bastion host
-            FromPort: 22
-            ToPort: 22
-            CidrIp: 0.0.0.0/0
-       SecurityGroupEgress:
-          - IpProtocol: tcp # open all ports for external access
-            FromPort: 0
-            ToPort: 65535
-            CidrIp: 0.0.0.0/0
+       VpcId: !Ref VPC
 
   EKSIAMRole:
     Type: AWS::IAM::Role
@@ -245,14 +113,14 @@ Resources:
         Type: AWS::EKS::Cluster
         Properties:
             Name: !Sub '${AWS::StackName}-cluster'
-            Version: '1.15'
+            Version: '1.17'
             RoleArn: !GetAtt EKSIAMRole.Arn
             ResourcesVpcConfig:
                 SecurityGroupIds:
                 -   !Ref ClusterSecurityGroup
                 SubnetIds:
-                -   !Ref AZ1PrivSub
-                -   !Ref AZ2PrivSub
+                -   !Ref Subnet1
+                -   !Ref Subnet2
 
 
 #================================================================
@@ -261,25 +129,19 @@ Outputs:
 
   Vpcid:
       Description: A reference to the software external URL for thsi cluster
-      Value: !Ref vpcMain
+      Value: !Ref VPC
       Export:
          Name: !Sub ${AWS::StackName}-vpcid
 
   BastionSubnet:
       Description: A reference to the software external URL for thsi cluster
-      Value: !Ref AZ1PubSub
+      Value: !Ref Subnet1
       Export:
-         Name: !Sub ${AWS::StackName}-bastion-subnet
-
-  PrivSubnetIds:
-    Description: Subnets IDs in the VPC
-    Value: !Join [ ",", [ !Ref AZ1PrivSub, !Ref AZ2PrivSub ] ]
-    Export:
-       Name: !Sub ${AWS::StackName}-privsubnets
+         Name: !Sub ${AWS::StackName}-hub-subnet
 
   PubSubnetIds:
     Description: Subnets IDs in the VPC
-    Value: !Join [ ",", [ !Ref AZ1PubSub, !Ref AZ2PubSub ] ]
+    Value: !Join [ ",", [ !Ref Subnet1, !Ref Subnet2 ] ]
     Export:
        Name: !Sub ${AWS::StackName}-pubsubnets
 

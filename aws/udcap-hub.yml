@@ -13,12 +13,12 @@ Resources:
   # Security Groups
   #===============================================================
 
-  SGBastion:
+  SGHub:
     Type: AWS::EC2::SecurityGroup
     Properties: 
         VpcId:
           Fn::ImportValue: !Sub "${networkStack}-vpcid"
-        GroupDescription: Security Group Bastion Host
+        GroupDescription: Security Group Hub Host
         SecurityGroupIngress:
         - IpProtocol: tcp  # ssh access to bastion host from single IP
           FromPort: 22
@@ -30,7 +30,7 @@ Resources:
           ToPort: 65535
           CidrIp: 0.0.0.0/0            
 
-  Bastion:
+  Hub:
     Type: AWS::EC2::Instance
     Properties: 
       UserData:
@@ -46,9 +46,9 @@ Resources:
       ImageId: ami-003634241a8fcdec0
       KeyName: udcap-ssh-bastion
       InstanceType: t3.micro
-      SecurityGroupIds : [ !GetAtt SGBastion.GroupId ]
+      SecurityGroupIds : [ !GetAtt SGHub.GroupId ]
       SubnetId: 
-        Fn::ImportValue: !Sub "${networkStack}-bastion-subnet"
+        Fn::ImportValue: !Sub "${networkStack}-hub-subnet"
       BlockDeviceMappings:
       - DeviceName: "/dev/sdk"
         Ebs:
@@ -56,14 +56,14 @@ Resources:
 
 Outputs:
 
-  BastionDNS:
+  HubDNS:
       Description: A reference to the software external URL for thsi cluster
-      Value: !GetAtt Bastion.PublicDnsName
+      Value: !GetAtt Hub.PublicDnsName
       Export:
           Name: !Sub ${networkStack}-bastion-dns
 
-  BastionIp:
+  HubIp:
       Description: A reference to the software external URL for thsi cluster
-      Value: !GetAtt Bastion.PublicIp
+      Value: !GetAtt Hub.PublicIp
       Export:
           Name: !Sub ${networkStack}-bastion-ip

@@ -13,6 +13,6 @@ spec:
       - name: eyes
         image: qmkey/udacity:capstone-eyes-server
         command: ["/app/entrypoint.bash"]
-        args: ["standalone"]
+        args: ["-h","hubaddress:7777","carrier"]
         ports:
         - containerPort: 6001

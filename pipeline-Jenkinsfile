@@ -18,9 +18,9 @@ pipeline {
                 sh "cd eyes-server ; make upload"
             }
         }
-        stage('Publish docker container') {
+        stage('Refresh application') {
             steps {
-                sh "cd eyes-server ; make upload"
+                sh "kubectl apply -y kubernetes/k8-config.yaml "
             }
         }
     }

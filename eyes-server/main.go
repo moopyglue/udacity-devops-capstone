@@ -86,7 +86,7 @@ func sendSession(w http.ResponseWriter, r *http.Request) {
     crossLink(gid,sid,true)
 
 	for {
-		__, rec_mess, err := conn.ReadMessage()
+		_, rec_mess, err := conn.ReadMessage()
 		if err != nil {
             log.Print(logtag,err);
             log.Print(logtag,"exiting")

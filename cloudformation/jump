@@ -9,4 +9,4 @@ hub_ip="$( aws cloudformation list-exports | awk '/Name: udcap-base-hub-pubip/ {
 # echo found: $hub_ip
 
 set -x
-ssh -i ~/.ssh/udcap-ssh-hub.pem ubuntu@$hub_ip "$@"
+ssh -i ~/.ssh/udcap-ssh-hub.pem -o "StrictHostKeyChecking=no" ubuntu@$hub_ip "$@"

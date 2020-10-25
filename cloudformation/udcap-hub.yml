@@ -45,6 +45,7 @@ Resources:
           apt upgrade -y
           sudo snap install kubectl --classic
           sudo snap install aws-cli --classic
+          sudo snap install docker --classic
       # Amazon Image ami-003634241a8fcdec0 : Ubuntu Server 18.04 LTS
       # NOTE: this image uses account 'ubuntu' instead of 'ec2-user'
       ImageId: ami-003634241a8fcdec0

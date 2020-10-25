@@ -14,7 +14,7 @@ metadata:
  name: hubaddress
 subsets:
  - addresses:
-     - ip: 10.0.0.171
+     - ip: 10.0.0.182
    ports:
      - port: 7777
 ---

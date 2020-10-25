@@ -2,7 +2,7 @@
 
 ## overview
 
-Jenkins based pipeline of an application called 'eyes' with ...
+Jenkins based pipeline with ROLLING deployment model for an application called 'eyes' with ...
 
 - a jenkins pipeline that published changes triggered by changes on a github repo
 - pipeline includes linting

@@ -1,12 +1,10 @@
 
 //
 //  todo
-//      - handling different feed info  newgetter/send/etc...
 //      - when hub is disconnected messages build up on the event_queue
 //          consider discard all but last minute and no duplicates
-//      - final test
-//  
-//  after nano
+//      - automated testing
+//      - rewrite to be horizoltally scalable (no hub)
 //      - identify listner by ip address//port or hostname?
 //      - consider epoc time to ensure older messages not transmitted or acted upon
 //      - transmit 'alive' message from hub to each listnere every 5 secs using channels
@@ -433,8 +431,6 @@ func share_daemon_peer(c net.Conn) {
 }
 
 func main() {
-
-    log.Print("v12")
 
 	short := "l:m:h:"
 	long := []string{ "listen","manager","hub" }

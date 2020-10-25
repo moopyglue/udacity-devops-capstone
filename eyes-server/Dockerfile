@@ -1,3 +1,4 @@
+
 FROM debian:buster-slim
 
 # RUN apt-get upgrade comment in for hadolint lint to fail

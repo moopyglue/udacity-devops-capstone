@@ -12,11 +12,15 @@ lint:
 	mkdir -p ${PWD}/tmpbuild
 	GOPATH=${PWD}/tmpbuild go get github.com/gorilla/websocket
 	GOPATH=${PWD}/tmpbuild go get github.com/timtadh/getopt
+	# running linter for GO
 	GOPATH=${PWD}/tmpbuild ../bin/golangci-lint run ./*.go
+	# GO linting completed successfully
 	# ------------------------------------------------------
 	# See local hadolint install instructions:   https://github.com/hadolint/hadolint
 	# This is linter for Dockerfiles
+	# running linter for DOCKERFILE
 	../bin/hadolint Dockerfile
+	# DOCKERFILE linting completed successfully
 
 docker: 
 	# Build image and add a descriptive tag

@@ -33,8 +33,10 @@ pipeline {
             steps {
                 sh "aws configure list"
                 sh "aws eks --region us-west-2  update-kubeconfig --name udcap-base-cluster"
+                sh "kubectl get pods"
                 sh "kubectl set image deployment/eyes eyes=qmkey/udacity-capstone-eyes:v${BUILD_NUMBER}"
                 sh "kubectl rollout status deployment/eyes"
+                sh "kubectl get pods"
             }
         }
     }

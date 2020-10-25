@@ -21,7 +21,7 @@ pipeline {
         }
         stage('Refresh Hub instance (Database)') {
             steps {
-                sh "./cloudformation/jump 'sudo docker pull qmkey/udacity-capstone-eyes:latest ; sudo docker stop eyes ;  sudo docker run --rm -d --name eyes -p 7777:7777 qmkey/udacity-capstone-eyes:latest hub"
+                sh "./cloudformation/jump 'sudo docker pull qmkey/udacity-capstone-eyes:latest ; sudo docker stop eyes ;  sudo docker run --rm -d --name eyes -p 7777:7777 qmkey/udacity-capstone-eyes:latest hub'"
             }
         }
         stage('wait 30s for DB to reload') {

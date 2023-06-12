@@ -30,6 +30,9 @@ import (
 	"net/http"
 	"github.com/gorilla/websocket"
     "github.com/timtadh/getopt"
+	"go.opentelemetry.io/otel"
+	"go.opentelemetry.io/otel/attribute"
+	"go.opentelemetry.io/otel/trace"
 )
 
 // track latest sender messages

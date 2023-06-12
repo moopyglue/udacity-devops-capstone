@@ -1,0 +1,23 @@
+<html><head>
+<style>
+html, body { margin:50px ; background: #ccc; }
+</style>
+</head>
+<body>
+<script>
+
+queryString = window.location.search;
+if( queryString == "" ) { queryString="?main" }
+queryString = queryString.substr(1)
+
+document.write(
+    "<h1>"+queryString+"</h1><h2>" + 
+    "<br> <a href=left.html?"+queryString+">Left eye</a> <br>" + 
+    "<br> <a href=right.html?"+queryString+">Right eye</a> <br>" + 
+    "<br> <a href=ctrl.html?"+queryString+">controller</a> <br>" 
+)
+
+</script>
+</h2>
+</body>
+</html>

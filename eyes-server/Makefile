@@ -45,8 +45,13 @@ foreground:
     
 background: 
 	# run 'all' then in background on port 6666
-	( docker stop eyes ; echo )
-	docker run --rm --detach --name eyes -p 6666:6001 eyes-server:latest standalone
+	( docker stop background ; echo )
+	docker run --rm --detach --name background -p 6666:6001 eyes-server:latest standalone
+
+background2: 
+	# run 'all' then in background on port 6666
+	( docker stop background2 ; echo )
+	docker run --rm --detach --name background2 -p 7777:6001 eyes-server:latest standalone
 
 runhub:
 	( docker stop eyes-hub ; echo )
